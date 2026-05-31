@@ -1,0 +1,5 @@
+settings.json
+transcripts/
+__pycache__/
+*.pyc
+.env
