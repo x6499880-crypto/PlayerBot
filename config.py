@@ -1,3 +1,7 @@
 import os
-TOKEN = os.environ.get("TOKEN")
+
+TOKEN = os.getenv("TOKEN") or os.environ.get("TOKEN")
 PREFIX = "!"
+
+if not TOKEN:
+    raise ValueError("TOKEN manquant !")
