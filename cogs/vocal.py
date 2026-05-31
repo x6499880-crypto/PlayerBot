@@ -1,3 +1,4 @@
+
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -168,7 +169,7 @@ class Vocal(commands.Cog):
             categorie = member.guild.get_channel(categorie_id) if categorie_id else after.channel.category
  
             salon = await member.guild.create_voice_channel(
-                name=f"Ton Vocal",
+                name=f"Vocal [{member.display_name}]",
                 category=categorie,
                 user_limit=0
             )
