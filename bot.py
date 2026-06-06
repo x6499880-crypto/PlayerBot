@@ -17,6 +17,9 @@ COGS = [
     "cogs.tickets",
     "cogs.comptage",
     "cogs.vocal",
+    "cogs.fun",
+    "cogs.economie",
+    "cogs.utilitaires2",
 ]
  
 async def main():
