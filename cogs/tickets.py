@@ -155,42 +155,77 @@ async def fermer_et_sauvegarder(channel: discord.TextChannel, guild: discord.Gui
     await channel.delete(reason=f"Ticket fermé par {ferme_par}")
  
  
-# ── Cog Tickets ────────────────────────────────────────────────
+# ── Setup Tickets Menu ─────────────────────────────────────────
  
-class Tickets(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
-        bot.add_view(BoutonOuvrirTicket())
-        bot.add_view(BoutonFermerTicket())
+class SetupTicketsView(discord.ui.View):
+    def __init__(self, guild: discord.Guild):
+        super().__init__(timeout=120)
+        self.guild = guild
+        self.salon_id = None
+        self.role_staff_id = None
+        self.salon_transcript_id = None
  
-    @app_commands.command(name="setup-tickets", description="Envoie le panel de tickets dans un salon")
-    @app_commands.describe(
-        salon="Salon où envoyer le panel",
-        role_staff="Rôle qui peut gérer les tickets",
-        salon_transcript="Salon où sauvegarder les transcripts",
-        categorie="Catégorie où créer les tickets (optionnel)"
-    )
-    @app_commands.checks.has_permissions(administrator=True)
-    async def setup_tickets(
-        self,
-        interaction: discord.Interaction,
-        salon: discord.TextChannel,
-        role_staff: discord.Role,
-        salon_transcript: discord.TextChannel,
-        categorie: discord.CategoryChannel = None
-    ):
+        # Select salon panel
+        salon_options = [
+            discord.SelectOption(label=f"#{c.name}", value=str(c.id))
+            for c in guild.text_channels[:25]
+        ]
+        salon_select = discord.ui.Select(placeholder="📌 Salon du panel tickets", options=salon_options, custom_id="salon_panel")
+        salon_select.callback = self.select_salon
+        self.add_item(salon_select)
+ 
+        # Select rôle staff
+        role_options = [
+            discord.SelectOption(label=r.name, value=str(r.id))
+            for r in guild.roles[1:][:25]
+        ]
+        role_select = discord.ui.Select(placeholder="👮 Rôle staff", options=role_options, custom_id="role_staff")
+        role_select.callback = self.select_role
+        self.add_item(role_select)
+ 
+        # Select salon transcript
+        transcript_options = [
+            discord.SelectOption(label=f"#{c.name}", value=str(c.id))
+            for c in guild.text_channels[:25]
+        ]
+        transcript_select = discord.ui.Select(placeholder="📋 Salon des transcripts", options=transcript_options, custom_id="salon_transcript")
+        transcript_select.callback = self.select_transcript
+        self.add_item(transcript_select)
+ 
+        # Bouton confirmer
+        btn = discord.ui.Button(label="✅ Confirmer", style=discord.ButtonStyle.success, custom_id="confirmer_tickets")
+        btn.callback = self.confirmer
+        self.add_item(btn)
+ 
+    async def select_salon(self, interaction: discord.Interaction):
+        self.salon_id = int(self.children[0].values[0])
+        await interaction.response.defer()
+ 
+    async def select_role(self, interaction: discord.Interaction):
+        self.role_staff_id = int(self.children[1].values[0])
+        await interaction.response.defer()
+ 
+    async def select_transcript(self, interaction: discord.Interaction):
+        self.salon_transcript_id = int(self.children[2].values[0])
+        await interaction.response.defer()
+ 
+    async def confirmer(self, interaction: discord.Interaction):
+        if not self.salon_id or not self.role_staff_id or not self.salon_transcript_id:
+            return await interaction.response.send_message("❌ Tu dois remplir tous les menus avant de confirmer.", ephemeral=True)
+ 
         settings = load_settings()
         guild_id = str(interaction.guild.id)
         if guild_id not in settings:
             settings[guild_id] = {}
- 
-        settings[guild_id]["role_staff"] = role_staff.id
-        settings[guild_id]["salon_transcript"] = salon_transcript.id
-        if categorie:
-            settings[guild_id]["categorie_tickets"] = categorie.id
+        settings[guild_id]["role_staff"] = self.role_staff_id
+        settings[guild_id]["salon_transcript"] = self.salon_transcript_id
         save_settings(settings)
  
-        embed = discord.Embed(
+        salon = interaction.guild.get_channel(self.salon_id)
+        role = interaction.guild.get_role(self.role_staff_id)
+        transcript = interaction.guild.get_channel(self.salon_transcript_id)
+ 
+        embed_panel = discord.Embed(
             title="🎫 Support — Ouvre un ticket",
             description=(
                 "Tu as besoin d'aide ou tu as une question ?\n\n"
@@ -199,14 +234,40 @@ class Tickets(commands.Cog):
             ),
             color=discord.Color.blurple()
         )
-        embed.set_footer(text=interaction.guild.name)
+        embed_panel.set_footer(text=interaction.guild.name)
+        await salon.send(embed=embed_panel, view=BoutonOuvrirTicket())
  
-        await salon.send(embed=embed, view=BoutonOuvrirTicket())
-        await interaction.response.send_message(
-            f"✅ Panel de tickets envoyé dans {salon.mention} !\n"
-            f"Staff : {role_staff.mention} | Transcripts : {salon_transcript.mention}",
-            ephemeral=True
+        await interaction.response.edit_message(
+            embed=discord.Embed(
+                title="✅ Tickets configurés !",
+                description=(
+                    f"**Panel :** {salon.mention}\n"
+                    f"**Staff :** {role.mention}\n"
+                    f"**Transcripts :** {transcript.mention}"
+                ),
+                color=discord.Color.green()
+            ),
+            view=None
         )
+ 
+ 
+# ── Cog Tickets ────────────────────────────────────────────────
+ 
+class Tickets(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+        bot.add_view(BoutonOuvrirTicket())
+        bot.add_view(BoutonFermerTicket())
+ 
+    @app_commands.command(name="setup-tickets", description="Configure le système de tickets via un menu interactif")
+    @app_commands.checks.has_permissions(administrator=True)
+    async def setup_tickets(self, interaction: discord.Interaction):
+        embed = discord.Embed(
+            title="🎫 Configuration des tickets",
+            description="Utilise les menus ci-dessous pour configurer le système de tickets.\n\n**Étape 1 :** Choisis le salon où envoyer le panel.",
+            color=discord.Color.blurple()
+        )
+        await interaction.response.send_message(embed=embed, view=SetupTicketsView(interaction.guild), ephemeral=True)
  
     @setup_tickets.error
     async def setup_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
