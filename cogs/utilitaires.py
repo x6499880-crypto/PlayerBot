@@ -107,34 +107,68 @@ class Utilitaires(commands.Cog):
         embed.set_footer(text=f"Demandé par {interaction.user.display_name}")
  
         embed.add_field(name="🛠️ Utilitaires", value=(
-            "`/ping` `/info-serveur` `/info-membre`\n"
-            "`/botinfo` `/tiktok` `/calc` `/rappel` `/suggestion`"
+            "`/ping` — Latence du bot\n"
+            "`/info-serveur` — Infos du serveur\n"
+            "`/info-membre` — Infos d'un membre\n"
+            "`/botinfo` — Infos du bot\n"
+            "`/tiktok` — Lien vers notre TikTok\n"
+            "`/calc` — Calculatrice\n"
+            "`/rappel` — Programme un rappel\n"
+            "`/suggestion` — Envoie une suggestion"
         ), inline=False)
         embed.add_field(name="🎮 Fun", value=(
-            "`/8ball` `/pileouface` `/roll` `/chifoumi`\n"
-            "`/blague` `/avatar` `/actionouverite`\n"
-            "`/lovecalc` `/sondage` `/quiz`"
+            "`/8ball` — Boule magique\n"
+            "`/pileouface` — Lance une pièce\n"
+            "`/roll` — Lance un dé\n"
+            "`/chifoumi` — Pierre-feuille-ciseaux\n"
+            "`/blague` — Blague aléatoire\n"
+            "`/avatar` — Affiche un avatar\n"
+            "`/actionouverite` — Action ou Vérité\n"
+            "`/lovecalc` — Calcul d'amour\n"
+            "`/sondage` — Crée un sondage\n"
+            "`/quiz` — Question de culture générale"
         ), inline=False)
         embed.add_field(name="💰 Économie", value=(
-            "`/daily` `/money` `/work` `/pay`\n"
-            "`/coinflip-bet` `/slots` `/rob` `/leaderboard`"
+            "`/daily` — Récompense quotidienne\n"
+            "`/money` — Voir son solde\n"
+            "`/work` — Travailler pour gagner des coins\n"
+            "`/pay` — Transférer des coins\n"
+            "`/coinflip-bet` — Parier sur pile ou face\n"
+            "`/slots` — Machine à sous\n"
+            "`/rob` — Voler un membre\n"
+            "`/leaderboard` — Classement des plus riches"
         ), inline=False)
-        embed.add_field(name="🔢 Comptage", value="`/comptage-info`", inline=False)
-        embed.add_field(name="🎙️ Vocal", value="Rejoins le salon **Ton Vocal** pour créer ton salon temporaire.", inline=False)
-        embed.add_field(name="🎫 Tickets", value="Clique sur le bouton dans le salon de support.", inline=False)
+        embed.add_field(name="🔢 Comptage", value="`/comptage-info` — Compteur actuel et record", inline=False)
+        embed.add_field(name="🎙️ Vocal", value="Rejoins le salon **Ton Vocal** pour créer ton salon vocal temporaire.", inline=False)
+        embed.add_field(name="🎫 Tickets", value="Clique sur le bouton dans le salon de support pour ouvrir un salon **tickets**.", inline=False)
  
         if is_admin:
             embed.add_field(name="\u200b", value="━━━━━━━━━━━━━━━━━━━━", inline=False)
             embed.add_field(name="🔨 Modération (admin)", value=(
-                "`/ban` `/unban` `/tempban` `/kick`\n"
-                "`/mute` `/unmute` `/clear` `/nuke`\n"
-                "`/warn` `/seewarns` `/clearwarns`\n"
-                "`/slowmode` `/lock` `/unlock`"
+                "`/ban` — Bannir un membre\n"
+                "`/unban` — Débannir un membre\n"
+                "`/tempban` — Bannir temporairement\n"
+                "`/kick` — Expulser un membre\n"
+                "`/mute` — Mettre en timeout\n"
+                "`/unmute` — Retirer le timeout\n"
+                "`/clear` — Supprimer des messages\n"
+                "`/nuke` — Effacer l'historique du salon\n"
+                "`/warn` — Avertir un membre\n"
+                "`/seewarns` — Voir les avertissements\n"
+                "`/clearwarns` — Effacer les avertissements\n"
+                "`/slowmode` — Mode lent\n"
+                "`/lock` — Verrouiller le salon\n"
+                "`/unlock` — Déverrouiller le salon"
             ), inline=False)
             embed.add_field(name="⚙️ Configuration (admin)", value=(
-                "`/set-bienvenue` `/test-bienvenue`\n"
-                "`/setup-tickets` `/setup-comptage` `/reset-comptage`\n"
-                "`/setup-vocal` `/commandes` `/say`"
+                "`/set-bienvenue` — Salon des messages de bienvenue\n"
+                "`/test-bienvenue` — Tester le message de bienvenue\n"
+                "`/setup-tickets` — Configurer le système de tickets\n"
+                "`/setup-comptage` — Configurer le salon de comptage\n"
+                "`/reset-comptage` — Remettre le compteur à 0\n"
+                "`/setup-vocal` — Configurer les salons vocaux\n"
+                "`/commandes` — Afficher les commandes membres\n"
+                "`/say` — Faire parler le bot"
             ), inline=False)
  
         await interaction.response.send_message(embed=embed, ephemeral=True)
