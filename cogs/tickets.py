@@ -164,6 +164,7 @@ class SetupTicketsView(discord.ui.View):
         self.salon_id = None
         self.role_staff_id = None
         self.salon_transcript_id = None
+        self.categorie_id = None
  
         # Select salon panel
         salon_options = [
@@ -192,6 +193,16 @@ class SetupTicketsView(discord.ui.View):
         transcript_select.callback = self.select_transcript
         self.add_item(transcript_select)
  
+        # Select catégorie
+        categorie_options = [discord.SelectOption(label="Aucune catégorie", value="0")]
+        categorie_options += [
+            discord.SelectOption(label=c.name, value=str(c.id))
+            for c in guild.categories[:24]
+        ]
+        categorie_select = discord.ui.Select(placeholder="📁 Catégorie des tickets (optionnel)", options=categorie_options, custom_id="categorie_tickets")
+        categorie_select.callback = self.select_categorie
+        self.add_item(categorie_select)
+ 
         # Bouton confirmer
         btn = discord.ui.Button(label="✅ Confirmer", style=discord.ButtonStyle.success, custom_id="confirmer_tickets")
         btn.callback = self.confirmer
@@ -209,6 +220,11 @@ class SetupTicketsView(discord.ui.View):
         self.salon_transcript_id = int(self.children[2].values[0])
         await interaction.response.defer()
  
+    async def select_categorie(self, interaction: discord.Interaction):
+        val = self.children[3].values[0]
+        self.categorie_id = int(val) if val != "0" else None
+        await interaction.response.defer()
+ 
     async def confirmer(self, interaction: discord.Interaction):
         if not self.salon_id or not self.role_staff_id or not self.salon_transcript_id:
             return await interaction.response.send_message("❌ Tu dois remplir tous les menus avant de confirmer.", ephemeral=True)
@@ -219,6 +235,8 @@ class SetupTicketsView(discord.ui.View):
             settings[guild_id] = {}
         settings[guild_id]["role_staff"] = self.role_staff_id
         settings[guild_id]["salon_transcript"] = self.salon_transcript_id
+        if self.categorie_id:
+            settings[guild_id]["categorie_tickets"] = self.categorie_id
         save_settings(settings)
  
         salon = interaction.guild.get_channel(self.salon_id)
@@ -243,7 +261,8 @@ class SetupTicketsView(discord.ui.View):
                 description=(
                     f"**Panel :** {salon.mention}\n"
                     f"**Staff :** {role.mention}\n"
-                    f"**Transcripts :** {transcript.mention}"
+                    f"**Transcripts :** {transcript.mention}\n"
+                    f"**Catégorie :** {interaction.guild.get_channel(self.categorie_id).name if self.categorie_id else 'Aucune'}"
                 ),
                 color=discord.Color.green()
             ),
