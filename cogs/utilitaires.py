@@ -13,6 +13,7 @@ def page_utilitaires():
         "`/info-membre` — Infos d'un membre\n"
         "`/botinfo` — Infos du bot\n"
         "`/tiktok` — Lien vers notre TikTok\n"
+        "`/twitch` — Lien vers notre Twitch\n"
         "`/calc` — Calculatrice\n"
         "`/rappel` — Programme un rappel\n"
         "`/suggestion` — Envoie une suggestion"
@@ -182,6 +183,16 @@ class Utilitaires(commands.Cog):
         embed.add_field(name="🎭 Rôles", value=", ".join(roles) if roles else "Aucun", inline=False)
         await interaction.response.send_message(embed=embed)
  
+    @app_commands.command(name="twitch", description="Affiche le lien vers le Twitch du serveur")
+    async def twitch(self, interaction: discord.Interaction):
+        embed = discord.Embed(
+            title="🟣 Twitch",
+            description="Retrouve-nous sur Twitch !\n\n🔗 [**xplayer0724**](https://www.twitch.tv/xplayer0724)",
+            color=0x9146FF
+        )
+        embed.set_footer(text="N'oublie pas de follow ! 🙏")
+        await interaction.response.send_message(embed=embed)
+ 
     @app_commands.command(name="tiktok", description="Affiche le lien vers le TikTok du serveur")
     async def tiktok(self, interaction: discord.Interaction):
         embed = discord.Embed(
@@ -207,6 +218,7 @@ class Utilitaires(commands.Cog):
             "`/info-membre` — Infos d'un membre\n"
             "`/botinfo` — Infos du bot\n"
             "`/tiktok` — Lien vers notre TikTok\n"
+        "`/twitch` — Lien vers notre Twitch\n"
             "`/calc` — Calculatrice\n"
             "`/rappel` — Programme un rappel\n"
             "`/suggestion` — Envoie une suggestion"
