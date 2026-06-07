@@ -65,7 +65,7 @@ class Comptage(commands.Cog):
     @app_commands.command(name="setup-comptage", description="Définit le salon de comptage")
     @app_commands.describe(salon="Le salon dédié au comptage")
     @app_commands.checks.has_permissions(administrator=True)
-    @app_commands.default_member_permissions(administrator=True)
+    @app_commands.default_member_permissions(discord.Permissions(administrator=True))
     async def setup_comptage(self, interaction: discord.Interaction, salon: discord.TextChannel):
         settings = load_settings()
         guild_id = str(interaction.guild.id)
@@ -101,7 +101,7 @@ class Comptage(commands.Cog):
  
     @app_commands.command(name="reset-comptage", description="Remet le compteur à 0")
     @app_commands.checks.has_permissions(administrator=True)
-    @app_commands.default_member_permissions(administrator=True)
+    @app_commands.default_member_permissions(discord.Permissions(administrator=True))
     async def reset_comptage(self, interaction: discord.Interaction):
         settings = load_settings()
         guild_id = str(interaction.guild.id)

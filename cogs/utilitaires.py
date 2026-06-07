@@ -194,7 +194,7 @@ class Utilitaires(commands.Cog):
  
     @app_commands.command(name="commandes", description="Affiche les commandes disponibles pour les membres")
     @app_commands.checks.has_permissions(administrator=True)
-    @app_commands.default_member_permissions(administrator=True)
+    @app_commands.default_member_permissions(discord.Permissions(administrator=True))
     async def commandes(self, interaction: discord.Interaction):
         embed = discord.Embed(
             title="📖 Commandes disponibles",

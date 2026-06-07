@@ -56,7 +56,7 @@ class Utilitaires2(commands.Cog):
     @app_commands.command(name="slowmode", description="Active le mode lent sur le salon")
     @app_commands.describe(secondes="Délai en secondes (0 pour désactiver)")
     @app_commands.checks.has_permissions(administrator=True)
-    @app_commands.default_member_permissions(administrator=True)
+    @app_commands.default_member_permissions(discord.Permissions(administrator=True))
     async def slowmode(self, interaction: discord.Interaction, secondes: int):
         await interaction.channel.edit(slowmode_delay=secondes)
         if secondes == 0:
@@ -66,21 +66,21 @@ class Utilitaires2(commands.Cog):
  
     @app_commands.command(name="lock", description="Verrouille le salon actuel")
     @app_commands.checks.has_permissions(administrator=True)
-    @app_commands.default_member_permissions(administrator=True)
+    @app_commands.default_member_permissions(discord.Permissions(administrator=True))
     async def lock(self, interaction: discord.Interaction):
         await interaction.channel.set_permissions(interaction.guild.default_role, send_messages=False)
         await interaction.response.send_message("🔒 Salon verrouillé.")
  
     @app_commands.command(name="unlock", description="Déverrouille le salon actuel")
     @app_commands.checks.has_permissions(administrator=True)
-    @app_commands.default_member_permissions(administrator=True)
+    @app_commands.default_member_permissions(discord.Permissions(administrator=True))
     async def unlock(self, interaction: discord.Interaction):
         await interaction.channel.set_permissions(interaction.guild.default_role, send_messages=True)
         await interaction.response.send_message("🔓 Salon déverrouillé.")
  
     @app_commands.command(name="nuke", description="Clone et supprime le salon pour effacer son historique")
     @app_commands.checks.has_permissions(administrator=True)
-    @app_commands.default_member_permissions(administrator=True)
+    @app_commands.default_member_permissions(discord.Permissions(administrator=True))
     async def nuke(self, interaction: discord.Interaction):
         channel = interaction.channel
         new_channel = await channel.clone(reason="Nuke")
@@ -91,7 +91,7 @@ class Utilitaires2(commands.Cog):
     @app_commands.command(name="warn", description="Avertit un membre")
     @app_commands.describe(membre="Le membre à avertir", raison="Raison de l'avertissement")
     @app_commands.checks.has_permissions(administrator=True)
-    @app_commands.default_member_permissions(administrator=True)
+    @app_commands.default_member_permissions(discord.Permissions(administrator=True))
     async def warn(self, interaction: discord.Interaction, membre: discord.Member, raison: str):
         import json, os
         warns_file = "warns.json"
@@ -113,7 +113,7 @@ class Utilitaires2(commands.Cog):
     @app_commands.command(name="seewarns", description="Affiche les avertissements d'un membre")
     @app_commands.describe(membre="Le membre à inspecter")
     @app_commands.checks.has_permissions(administrator=True)
-    @app_commands.default_member_permissions(administrator=True)
+    @app_commands.default_member_permissions(discord.Permissions(administrator=True))
     async def seewarns(self, interaction: discord.Interaction, membre: discord.Member):
         import json, os
         warns_file = "warns.json"
@@ -131,7 +131,7 @@ class Utilitaires2(commands.Cog):
     @app_commands.command(name="clearwarns", description="Efface tous les avertissements d'un membre")
     @app_commands.describe(membre="Le membre")
     @app_commands.checks.has_permissions(administrator=True)
-    @app_commands.default_member_permissions(administrator=True)
+    @app_commands.default_member_permissions(discord.Permissions(administrator=True))
     async def clearwarns(self, interaction: discord.Interaction, membre: discord.Member):
         import json, os
         warns_file = "warns.json"
@@ -146,7 +146,7 @@ class Utilitaires2(commands.Cog):
     @app_commands.command(name="tempban", description="Bannit temporairement un membre")
     @app_commands.describe(membre="Le membre", duree="Durée en minutes", raison="Raison")
     @app_commands.checks.has_permissions(administrator=True)
-    @app_commands.default_member_permissions(administrator=True)
+    @app_commands.default_member_permissions(discord.Permissions(administrator=True))
     async def tempban(self, interaction: discord.Interaction, membre: discord.Member, duree: int, raison: str = "Aucune raison"):
         await membre.ban(reason=raison)
         await interaction.response.send_message(f"🔨 {membre.mention} a été banni pour **{duree} minutes**. Raison : {raison}")
