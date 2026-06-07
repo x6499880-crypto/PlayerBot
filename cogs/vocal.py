@@ -204,7 +204,6 @@ class Vocal(commands.Cog):
         categorie="La catégorie où créer les salons temporaires (optionnel)"
     )
     @app_commands.checks.has_permissions(administrator=True)
-    @app_commands.default_member_permissions(discord.Permissions(administrator=True))
     async def setup_vocal(
         self,
         interaction: discord.Interaction,

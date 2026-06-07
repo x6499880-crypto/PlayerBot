@@ -280,7 +280,6 @@ class Tickets(commands.Cog):
  
     @app_commands.command(name="setup-tickets", description="Configure le système de tickets via un menu interactif")
     @app_commands.checks.has_permissions(administrator=True)
-    @app_commands.default_member_permissions(discord.Permissions(administrator=True))
     async def setup_tickets(self, interaction: discord.Interaction):
         embed = discord.Embed(
             title="🎫 Configuration des tickets",
