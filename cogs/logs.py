@@ -41,7 +41,10 @@ class SetupLogsView1(discord.ui.View):
         self.selections = {}
  
         options = [discord.SelectOption(label="❌ Désactiver", value="0")]
-        options += [discord.SelectOption(label=f"#{c.name}", value=str(c.id)) for c in guild.text_channels[:24]]
+        log_channels = [c for c in guild.text_channels if "log" in c.name.lower()]
+        other_channels = [c for c in guild.text_channels if "log" not in c.name.lower()]
+        all_channels = (log_channels + other_channels)[:24]
+        options += [discord.SelectOption(label=f"#{c.name}", value=str(c.id)) for c in all_channels]
  
         for label, key in [("🔨 Modération", "moderation"), ("💬 Messages", "messages"), ("👥 Membres", "membres")]:
             select = discord.ui.Select(placeholder=f"{label} — Choisir un salon", options=options.copy(), custom_id=f"logs_{key}")
@@ -72,7 +75,10 @@ class SetupLogsView2(discord.ui.View):
         self.selections = selections
  
         options = [discord.SelectOption(label="❌ Désactiver", value="0")]
-        options += [discord.SelectOption(label=f"#{c.name}", value=str(c.id)) for c in guild.text_channels[:24]]
+        log_channels = [c for c in guild.text_channels if "log" in c.name.lower()]
+        other_channels = [c for c in guild.text_channels if "log" not in c.name.lower()]
+        all_channels = (log_channels + other_channels)[:24]
+        options += [discord.SelectOption(label=f"#{c.name}", value=str(c.id)) for c in all_channels]
  
         for label, key in [("🔊 Vocal", "vocal"), ("📁 Salons", "salons")]:
             select = discord.ui.Select(placeholder=f"{label} — Choisir un salon", options=options.copy(), custom_id=f"logs_{key}")
