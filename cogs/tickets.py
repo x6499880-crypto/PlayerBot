@@ -60,7 +60,7 @@ class BoutonOuvrirTicket(discord.ui.View):
         save_settings(settings)
  
         salon = await guild.create_text_channel(
-            name="tickets",
+            name=f"tickets-{member.display_name.lower().replace(' ', '-')}",
             overwrites=overwrites,
             category=categorie,
             topic=f"ticket-{member.id}"
