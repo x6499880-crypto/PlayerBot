@@ -1,3 +1,4 @@
+
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -90,6 +91,7 @@ def page_config():
         "`/setup-comptage` — Configurer le salon de comptage\n"
         "`/reset-comptage` — Remettre le compteur à 0\n"
         "`/setup-vocal` — Configurer les salons vocaux\n"
+        "`/setup-logs` — Configurer les salons de logs\n"
         "`/commandes` — Afficher les commandes membres\n"
         "`/say` — Faire parler le bot"
     ), inline=False)

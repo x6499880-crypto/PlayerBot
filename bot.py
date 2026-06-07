@@ -1,3 +1,4 @@
+
 import discord
 from discord.ext import commands
 import asyncio
@@ -20,6 +21,7 @@ COGS = [
     "cogs.fun",
     "cogs.economie",
     "cogs.utilitaires2",
+    "cogs.logs",
 ]
  
 async def main():
