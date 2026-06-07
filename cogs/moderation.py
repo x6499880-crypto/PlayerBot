@@ -26,6 +26,7 @@ class Moderation(commands.Cog):
     @app_commands.command(name="kick", description="Expulse un membre du serveur")
     @app_commands.describe(membre="Le membre à expulser", raison="Raison de l'expulsion")
     @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.default_member_permissions(administrator=True)
     async def kick(self, interaction: discord.Interaction, membre: discord.Member, raison: str = "Aucune raison fournie"):
         ok, msg = self.peut_moderer(interaction.user, membre)
         if not ok:
@@ -42,6 +43,7 @@ class Moderation(commands.Cog):
     @app_commands.command(name="ban", description="Bannit un membre du serveur")
     @app_commands.describe(membre="Le membre à bannir", raison="Raison du bannissement")
     @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.default_member_permissions(administrator=True)
     async def ban(self, interaction: discord.Interaction, membre: discord.Member, raison: str = "Aucune raison fournie"):
         ok, msg = self.peut_moderer(interaction.user, membre)
         if not ok:
@@ -58,6 +60,7 @@ class Moderation(commands.Cog):
     @app_commands.command(name="unban", description="Débannit un utilisateur par son ID")
     @app_commands.describe(user_id="L'ID de l'utilisateur à débannir")
     @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.default_member_permissions(administrator=True)
     async def unban(self, interaction: discord.Interaction, user_id: str):
         try:
             user = await self.bot.fetch_user(int(user_id))
@@ -71,6 +74,7 @@ class Moderation(commands.Cog):
     @app_commands.command(name="mute", description="Rend muet un membre (timeout)")
     @app_commands.describe(membre="Le membre à mute", duree="Durée en minutes", raison="Raison")
     @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.default_member_permissions(administrator=True)
     async def mute(self, interaction: discord.Interaction, membre: discord.Member, duree: int = 10, raison: str = "Aucune raison fournie"):
         ok, msg = self.peut_moderer(interaction.user, membre)
         if not ok:
@@ -85,6 +89,7 @@ class Moderation(commands.Cog):
     @app_commands.command(name="unmute", description="Retire le mute d'un membre")
     @app_commands.describe(membre="Le membre à unmute")
     @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.default_member_permissions(administrator=True)
     async def unmute(self, interaction: discord.Interaction, membre: discord.Member):
         await membre.timeout(None)
         await interaction.response.send_message(f"✅ {membre.mention} n'est plus mute.")
@@ -92,6 +97,7 @@ class Moderation(commands.Cog):
     @app_commands.command(name="clear", description="Supprime des messages en masse")
     @app_commands.describe(nombre="Nombre de messages à supprimer (max 100)")
     @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.default_member_permissions(administrator=True)
     async def clear(self, interaction: discord.Interaction, nombre: int):
         if nombre < 1 or nombre > 100:
             return await interaction.response.send_message("❌ Le nombre doit être entre 1 et 100.", ephemeral=True)

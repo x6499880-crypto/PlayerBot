@@ -131,6 +131,7 @@ class Logs(commands.Cog):
  
     @app_commands.command(name="setup-logs", description="Configure les salons de logs")
     @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.default_member_permissions(administrator=True)
     async def setup_logs(self, interaction: discord.Interaction):
         embed = discord.Embed(
             title="📋 Logs — Étape 1/2",

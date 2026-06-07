@@ -62,6 +62,7 @@ class Evenements(commands.Cog):
     @app_commands.command(name="set-bienvenue", description="Définit le salon pour les messages de bienvenue")
     @app_commands.describe(salon="Le salon où envoyer les messages de bienvenue")
     @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.default_member_permissions(administrator=True)
     async def set_bienvenue(self, interaction: discord.Interaction, salon: discord.TextChannel):
         settings = load_settings()
         guild_id = str(interaction.guild.id)
@@ -80,6 +81,7 @@ class Evenements(commands.Cog):
  
     @app_commands.command(name="test-bienvenue", description="Teste le message de bienvenue")
     @app_commands.checks.has_permissions(administrator=True)
+    @app_commands.default_member_permissions(administrator=True)
     async def test_bienvenue(self, interaction: discord.Interaction):
         settings = load_settings()
         salon_id = settings.get(str(interaction.guild.id), {}).get("salon_bienvenue")
