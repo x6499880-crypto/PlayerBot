@@ -1,4 +1,3 @@
-
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -20,8 +19,7 @@ def save_settings(data):
  
 def get_log_channel(guild, category):
     settings = load_settings()
-    guild_id = str(guild.id)
-    channel_id = settings.get(guild_id, {}).get(f"logs_{category}")
+    channel_id = settings.get(str(guild.id), {}).get(f"logs_{category}")
     if channel_id:
         return guild.get_channel(channel_id)
     return None
@@ -34,81 +32,88 @@ async def send_log(guild, category, embed):
         except:
             pass
  
-# ── Setup Logs Menu ────────────────────────────────────────────
+# ── Étape 1 ────────────────────────────────────────────────────
  
-class SetupLogsView(discord.ui.View):
+class SetupLogsView1(discord.ui.View):
     def __init__(self, guild):
         super().__init__(timeout=180)
         self.guild = guild
         self.selections = {}
  
-        categories = [
-            ("🔨 Modération", "moderation"),
-            ("💬 Messages", "messages"),
-            ("👥 Membres", "membres"),
-            ("🔊 Vocal", "vocal"),
-            ("📁 Salons", "salons"),
-        ]
- 
         options = [discord.SelectOption(label="❌ Désactiver", value="0")]
-        options += [
-            discord.SelectOption(label=f"#{c.name}", value=str(c.id))
-            for c in guild.text_channels[:24]
-        ]
+        options += [discord.SelectOption(label=f"#{c.name}", value=str(c.id)) for c in guild.text_channels[:24]]
  
-        for label, key in categories:
-            select = discord.ui.Select(
-                placeholder=f"{label} — Choisir un salon",
-                options=options.copy(),
-                custom_id=f"logs_{key}"
-            )
+        for label, key in [("🔨 Modération", "moderation"), ("💬 Messages", "messages"), ("👥 Membres", "membres")]:
+            select = discord.ui.Select(placeholder=f"{label} — Choisir un salon", options=options.copy(), custom_id=f"logs_{key}")
             select.callback = self.make_callback(key)
             self.add_item(select)
  
-        btn = discord.ui.Button(label="✅ Confirmer", style=discord.ButtonStyle.success, row=4)
-        btn.callback = self.confirmer
+        btn = discord.ui.Button(label="Suivant ▶", style=discord.ButtonStyle.primary, row=4)
+        btn.callback = self.suivant
         self.add_item(btn)
  
     def make_callback(self, key):
         async def callback(interaction: discord.Interaction):
-            val = interaction.data["values"][0]
-            self.selections[key] = int(val) if val != "0" else None
+            self.selections[key] = int(interaction.data["values"][0]) if interaction.data["values"][0] != "0" else None
             await interaction.response.defer()
         return callback
  
-    async def confirmer(self, interaction: discord.Interaction):
-        if not self.selections:
-            return await interaction.response.send_message("❌ Tu n'as rien configuré.", ephemeral=True)
+    async def suivant(self, interaction: discord.Interaction):
+        embed = discord.Embed(title="📋 Logs — Étape 2/2", description="Configure les logs **Vocal** et **Salons**.", color=discord.Color.blurple())
+        await interaction.response.edit_message(embed=embed, view=SetupLogsView2(self.guild, self.selections))
  
+ 
+# ── Étape 2 ────────────────────────────────────────────────────
+ 
+class SetupLogsView2(discord.ui.View):
+    def __init__(self, guild, selections):
+        super().__init__(timeout=180)
+        self.guild = guild
+        self.selections = selections
+ 
+        options = [discord.SelectOption(label="❌ Désactiver", value="0")]
+        options += [discord.SelectOption(label=f"#{c.name}", value=str(c.id)) for c in guild.text_channels[:24]]
+ 
+        for label, key in [("🔊 Vocal", "vocal"), ("📁 Salons", "salons")]:
+            select = discord.ui.Select(placeholder=f"{label} — Choisir un salon", options=options.copy(), custom_id=f"logs_{key}")
+            select.callback = self.make_callback(key)
+            self.add_item(select)
+ 
+        btn_retour = discord.ui.Button(label="◀ Retour", style=discord.ButtonStyle.secondary, row=4)
+        btn_retour.callback = self.retour
+        self.add_item(btn_retour)
+ 
+        btn_confirm = discord.ui.Button(label="✅ Confirmer", style=discord.ButtonStyle.success, row=4)
+        btn_confirm.callback = self.confirmer
+        self.add_item(btn_confirm)
+ 
+    def make_callback(self, key):
+        async def callback(interaction: discord.Interaction):
+            self.selections[key] = int(interaction.data["values"][0]) if interaction.data["values"][0] != "0" else None
+            await interaction.response.defer()
+        return callback
+ 
+    async def retour(self, interaction: discord.Interaction):
+        embed = discord.Embed(title="📋 Logs — Étape 1/2", description="Configure les logs **Modération**, **Messages** et **Membres**.", color=discord.Color.blurple())
+        view1 = SetupLogsView1(self.guild)
+        view1.selections = self.selections
+        await interaction.response.edit_message(embed=embed, view=view1)
+ 
+    async def confirmer(self, interaction: discord.Interaction):
         settings = load_settings()
         guild_id = str(interaction.guild.id)
         if guild_id not in settings:
             settings[guild_id] = {}
  
+        labels = {"moderation": "🔨 Modération", "messages": "💬 Messages", "membres": "👥 Membres", "vocal": "🔊 Vocal", "salons": "📁 Salons"}
         desc = ""
-        categories_labels = {
-            "moderation": "🔨 Modération",
-            "messages": "💬 Messages",
-            "membres": "👥 Membres",
-            "vocal": "🔊 Vocal",
-            "salons": "📁 Salons",
-        }
- 
         for key, channel_id in self.selections.items():
             settings[guild_id][f"logs_{key}"] = channel_id
-            if channel_id:
-                ch = interaction.guild.get_channel(channel_id)
-                desc += f"{categories_labels[key]} → {ch.mention}\n"
-            else:
-                desc += f"{categories_labels[key]} → ❌ Désactivé\n"
+            ch = interaction.guild.get_channel(channel_id) if channel_id else None
+            desc += f"{labels.get(key, key)} → {ch.mention if ch else '❌ Désactivé'}\n"
  
         save_settings(settings)
- 
-        embed = discord.Embed(
-            title="✅ Logs configurés !",
-            description=desc,
-            color=discord.Color.green()
-        )
+        embed = discord.Embed(title="✅ Logs configurés !", description=desc, color=discord.Color.green())
         await interaction.response.edit_message(embed=embed, view=None)
  
  
@@ -118,55 +123,37 @@ class Logs(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
  
-    # ── Commande setup ──
- 
-    @app_commands.command(name="setup-logs", description="Configure les salons de logs via un menu interactif")
+    @app_commands.command(name="setup-logs", description="Configure les salons de logs")
     @app_commands.checks.has_permissions(administrator=True)
     async def setup_logs(self, interaction: discord.Interaction):
         embed = discord.Embed(
-            title="📋 Configuration des logs",
-            description=(
-                "Choisis un salon pour chaque catégorie de logs.\n"
-                "Sélectionne **❌ Désactiver** pour désactiver une catégorie.\n\n"
-                "Quand tu as tout configuré, clique sur **✅ Confirmer**."
-            ),
+            title="📋 Logs — Étape 1/2",
+            description="Configure les logs **Modération**, **Messages** et **Membres**.",
             color=discord.Color.blurple()
         )
-        await interaction.response.send_message(embed=embed, view=SetupLogsView(interaction.guild), ephemeral=True)
- 
-    # ── Logs Modération ──
+        await interaction.response.send_message(embed=embed, view=SetupLogsView1(interaction.guild), ephemeral=True)
  
     @commands.Cog.listener()
     async def on_member_ban(self, guild, user):
         embed = discord.Embed(title="🔨 Membre banni", color=discord.Color.red(), timestamp=datetime.datetime.utcnow())
-        embed.add_field(name="Utilisateur", value=f"{user} ({user.id})", inline=False)
+        embed.add_field(name="Utilisateur", value=f"{user} ({user.id})")
         embed.set_thumbnail(url=user.display_avatar.url)
         await send_log(guild, "moderation", embed)
  
     @commands.Cog.listener()
     async def on_member_unban(self, guild, user):
         embed = discord.Embed(title="✅ Membre débanni", color=discord.Color.green(), timestamp=datetime.datetime.utcnow())
-        embed.add_field(name="Utilisateur", value=f"{user} ({user.id})", inline=False)
+        embed.add_field(name="Utilisateur", value=f"{user} ({user.id})")
         await send_log(guild, "moderation", embed)
- 
-    @commands.Cog.listener()
-    async def on_member_remove(self, member):
-        # Log kick (si expulsé)
-        embed = discord.Embed(title="👢 Membre expulsé / parti", color=discord.Color.orange(), timestamp=datetime.datetime.utcnow())
-        embed.add_field(name="Membre", value=f"{member} ({member.id})", inline=False)
-        embed.set_thumbnail(url=member.display_avatar.url)
-        await send_log(member.guild, "moderation", embed)
- 
-    # ── Logs Messages ──
  
     @commands.Cog.listener()
     async def on_message_delete(self, message):
         if message.author.bot:
             return
         embed = discord.Embed(title="🗑️ Message supprimé", color=discord.Color.red(), timestamp=datetime.datetime.utcnow())
-        embed.add_field(name="Auteur", value=f"{message.author.mention} ({message.author.id})", inline=True)
+        embed.add_field(name="Auteur", value=f"{message.author.mention}", inline=True)
         embed.add_field(name="Salon", value=message.channel.mention, inline=True)
-        embed.add_field(name="Contenu", value=message.content or "*[Aucun contenu texte]*", inline=False)
+        embed.add_field(name="Contenu", value=message.content or "*[Aucun contenu]*", inline=False)
         await send_log(message.guild, "messages", embed)
  
     @commands.Cog.listener()
@@ -174,31 +161,32 @@ class Logs(commands.Cog):
         if before.author.bot or before.content == after.content:
             return
         embed = discord.Embed(title="✏️ Message modifié", color=discord.Color.yellow(), timestamp=datetime.datetime.utcnow())
-        embed.add_field(name="Auteur", value=f"{before.author.mention}", inline=True)
+        embed.add_field(name="Auteur", value=before.author.mention, inline=True)
         embed.add_field(name="Salon", value=before.channel.mention, inline=True)
         embed.add_field(name="Avant", value=before.content or "*vide*", inline=False)
         embed.add_field(name="Après", value=after.content or "*vide*", inline=False)
         embed.add_field(name="🔗 Lien", value=f"[Voir le message]({after.jump_url})", inline=False)
         await send_log(before.guild, "messages", embed)
  
-    # ── Logs Membres ──
- 
     @commands.Cog.listener()
     async def on_member_join(self, member):
         embed = discord.Embed(title="📥 Nouveau membre", color=discord.Color.green(), timestamp=datetime.datetime.utcnow())
-        embed.add_field(name="Membre", value=f"{member.mention} ({member.id})", inline=False)
-        embed.add_field(name="Compte créé le", value=member.created_at.strftime("%d/%m/%Y"), inline=False)
+        embed.add_field(name="Membre", value=f"{member.mention} ({member.id})")
+        embed.add_field(name="Compte créé le", value=member.created_at.strftime("%d/%m/%Y"))
+        embed.set_thumbnail(url=member.display_avatar.url)
+        await send_log(member.guild, "membres", embed)
+ 
+    @commands.Cog.listener()
+    async def on_member_remove(self, member):
+        embed = discord.Embed(title="📤 Membre parti", color=discord.Color.orange(), timestamp=datetime.datetime.utcnow())
+        embed.add_field(name="Membre", value=f"{member} ({member.id})")
         embed.set_thumbnail(url=member.display_avatar.url)
         await send_log(member.guild, "membres", embed)
  
     @commands.Cog.listener()
     async def on_member_update(self, before, after):
-        # Changement de rôles
-        roles_avant = set(before.roles)
-        roles_apres = set(after.roles)
-        roles_ajoutes = roles_apres - roles_avant
-        roles_retires = roles_avant - roles_apres
- 
+        roles_ajoutes = set(after.roles) - set(before.roles)
+        roles_retires = set(before.roles) - set(after.roles)
         if roles_ajoutes or roles_retires:
             embed = discord.Embed(title="🎭 Rôles modifiés", color=discord.Color.blurple(), timestamp=datetime.datetime.utcnow())
             embed.add_field(name="Membre", value=after.mention, inline=False)
@@ -207,42 +195,31 @@ class Logs(commands.Cog):
             if roles_retires:
                 embed.add_field(name="❌ Retirés", value=", ".join(r.mention for r in roles_retires), inline=True)
             await send_log(after.guild, "membres", embed)
- 
-        # Changement de pseudo
         if before.nick != after.nick:
             embed = discord.Embed(title="✏️ Pseudo modifié", color=discord.Color.blurple(), timestamp=datetime.datetime.utcnow())
-            embed.add_field(name="Membre", value=after.mention, inline=False)
+            embed.add_field(name="Membre", value=after.mention)
             embed.add_field(name="Avant", value=before.nick or "*Aucun*", inline=True)
             embed.add_field(name="Après", value=after.nick or "*Aucun*", inline=True)
             await send_log(after.guild, "membres", embed)
  
-    # ── Logs Vocal ──
- 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
-        # Rejoindre un salon vocal
         if not before.channel and after.channel:
             embed = discord.Embed(title="🔊 Rejoint un vocal", color=discord.Color.green(), timestamp=datetime.datetime.utcnow())
             embed.add_field(name="Membre", value=member.mention, inline=True)
             embed.add_field(name="Salon", value=after.channel.name, inline=True)
             await send_log(member.guild, "vocal", embed)
- 
-        # Quitter un salon vocal
         elif before.channel and not after.channel:
             embed = discord.Embed(title="🔇 Quitté un vocal", color=discord.Color.red(), timestamp=datetime.datetime.utcnow())
             embed.add_field(name="Membre", value=member.mention, inline=True)
             embed.add_field(name="Salon", value=before.channel.name, inline=True)
             await send_log(member.guild, "vocal", embed)
- 
-        # Changer de salon vocal
         elif before.channel and after.channel and before.channel != after.channel:
             embed = discord.Embed(title="🔀 Changé de vocal", color=discord.Color.yellow(), timestamp=datetime.datetime.utcnow())
-            embed.add_field(name="Membre", value=member.mention, inline=False)
+            embed.add_field(name="Membre", value=member.mention)
             embed.add_field(name="Avant", value=before.channel.name, inline=True)
             embed.add_field(name="Après", value=after.channel.name, inline=True)
             await send_log(member.guild, "vocal", embed)
- 
-    # ── Logs Salons ──
  
     @commands.Cog.listener()
     async def on_guild_channel_create(self, channel):
