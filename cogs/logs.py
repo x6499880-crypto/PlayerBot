@@ -88,11 +88,14 @@ class SetupLogsView(discord.ui.View):
 
     def make_callback(self, key):
         async def callback(interaction: discord.Interaction):
-            mot_cle = {"ticket": "ticket"}.get(key, key[:4])
             options = [discord.SelectOption(label="❌ Désactiver", value="0")]
-            options += [discord.SelectOption(label=f"#{c.name}", value=str(c.id)) for c in prioriser_salons(self.guild, mot_cle)[:24]]
+            salons_tries = prioriser_salons(self.guild, "log")
+            for c in salons_tries[:24]:
+                est_log = "log" in c.name.lower()
+                label = f"📋 #{c.name}" if est_log else f"#{c.name}"
+                options.append(discord.SelectOption(label=label, value=str(c.id)))
             await interaction.response.send_message(
-                f"Choisis le salon pour cette catégorie :",
+                f"Choisis le salon pour cette catégorie : (📋 = contient \"log\")",
                 view=SousMenuLog(self, key, options),
                 ephemeral=True
             )
