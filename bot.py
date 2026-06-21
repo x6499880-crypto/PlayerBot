@@ -1,16 +1,20 @@
-
 import discord
 from discord.ext import commands
 import asyncio
 import os
-from config import TOKEN, PREFIX
- 
+from config import TOKEN
+
 intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
- 
-bot = commands.Bot(command_prefix=PREFIX, intents=intents)
- 
+
+def get_prefix(bot, message):
+    """Préfixe dynamique par serveur, importé après le chargement des cogs."""
+    from cogs.prefix import get_prefix as _get_prefix
+    return _get_prefix(bot, message)
+
+bot = commands.Bot(command_prefix=get_prefix, intents=intents)
+
 COGS = [
     "cogs.evenements",
     "cogs.utilitaires",
@@ -22,8 +26,9 @@ COGS = [
     "cogs.economie",
     "cogs.utilitaires2",
     "cogs.logs",
+    "cogs.prefix",
 ]
- 
+
 async def main():
     async with bot:
         for cog in COGS:
@@ -33,6 +38,5 @@ async def main():
             except Exception as e:
                 print(f"❌ Erreur chargement {cog} : {e}")
         await bot.start(TOKEN)
- 
+
 asyncio.run(main())
- 
