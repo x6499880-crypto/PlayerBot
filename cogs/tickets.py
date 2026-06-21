@@ -27,6 +27,13 @@ CATEGORIES_TICKET = {
 }
 
 
+def prioriser_salons(guild, mot_cle):
+    """Met en avant les salons dont le nom contient mot_cle."""
+    correspond = [c for c in guild.text_channels if mot_cle in c.name.lower()]
+    autres = [c for c in guild.text_channels if mot_cle not in c.name.lower()]
+    return correspond + autres
+
+
 async def log_ticket(guild, texte):
     settings = load_settings()
     salon_id = settings.get(str(guild.id), {}).get("logs_tickets")
@@ -379,7 +386,7 @@ class SetupTicketsView(discord.ui.View):
         self.salon_transcript_id = None
         self.categorie_id = None
 
-        salon_options = [discord.SelectOption(label=f"#{c.name}", value=str(c.id)) for c in guild.text_channels[:25]]
+        salon_options = [discord.SelectOption(label=f"#{c.name}", value=str(c.id)) for c in prioriser_salons(guild, "ticket")[:25]]
         salon_select = discord.ui.Select(placeholder="📌 Salon du panel tickets", options=salon_options, custom_id="salon_panel")
         salon_select.callback = self.select_salon
         self.add_item(salon_select)
@@ -389,7 +396,7 @@ class SetupTicketsView(discord.ui.View):
         role_select.callback = self.select_role
         self.add_item(role_select)
 
-        transcript_options = [discord.SelectOption(label=f"#{c.name}", value=str(c.id)) for c in guild.text_channels[:25]]
+        transcript_options = [discord.SelectOption(label=f"#{c.name}", value=str(c.id)) for c in prioriser_salons(guild, "transcript")[:25]]
         transcript_select = discord.ui.Select(placeholder="📋 Salon des transcripts", options=transcript_options, custom_id="salon_transcript")
         transcript_select.callback = self.select_transcript
         self.add_item(transcript_select)
