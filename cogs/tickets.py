@@ -4,6 +4,7 @@ from discord.ext import commands
 import datetime
 import json
 import os
+import asyncio
 
 SETTINGS_FILE = "settings.json"
 
@@ -176,6 +177,18 @@ class PanelGestionTicket(discord.ui.View):
             return
         await interaction.response.send_modal(ModalRetirerMembre())
 
+    @discord.ui.button(label="Supprimer", emoji="🗑️", style=discord.ButtonStyle.danger, custom_id="ticket_delete_direct", row=1)
+    async def supprimer_direct(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not await is_staff(interaction):
+            return
+        await interaction.response.send_message("🗑️ Suppression du salon dans 3 secondes...")
+        await log_ticket(interaction.guild, f"🗑️ **Ticket supprimé** : `{interaction.channel.name}` par {interaction.user.mention}")
+        await asyncio.sleep(3)
+        try:
+            await interaction.channel.delete(reason=f"Ticket supprimé par {interaction.user}")
+        except:
+            pass
+
 
 class PanelTicketFerme(discord.ui.View):
     def __init__(self):
@@ -198,6 +211,18 @@ class PanelTicketFerme(discord.ui.View):
         embed = discord.Embed(title="🔓 Ticket réouvert", description=f"Réouvert par {interaction.user.mention}", color=discord.Color.green())
         await interaction.response.send_message(embed=embed, view=PanelGestionTicket())
         await log_ticket(interaction.guild, f"🔓 **Ticket réouvert** : {interaction.channel.mention} par {interaction.user.mention}")
+
+    @discord.ui.button(label="Supprimer", emoji="🗑️", style=discord.ButtonStyle.danger, custom_id="ticket_delete")
+    async def supprimer(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not await is_staff(interaction):
+            return
+        await interaction.response.send_message("🗑️ Suppression du salon dans 3 secondes...")
+        await log_ticket(interaction.guild, f"🗑️ **Ticket supprimé** : `{interaction.channel.name}` par {interaction.user.mention}")
+        await asyncio.sleep(3)
+        try:
+            await interaction.channel.delete(reason=f"Ticket supprimé par {interaction.user}")
+        except:
+            pass
 
 
 # ── Modals ─────────────────────────────────────────────────────
