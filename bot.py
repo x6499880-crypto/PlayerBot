@@ -27,6 +27,7 @@ COGS = [
     "cogs.utilitaires2",
     "cogs.logs",
     "cogs.prefix",
+    "cogs.membercount",
 ]
 
 async def main():
