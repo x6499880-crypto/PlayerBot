@@ -350,12 +350,9 @@ class Tickets(commands.Cog):
     @app_commands.command(name="setup-tickets", description="Configure le système de tickets via un menu interactif")
     @app_commands.checks.has_permissions(administrator=True)
     async def setup_tickets(self, interaction: discord.Interaction):
-        embed = discord.Embed(
-            title="🎫 Configuration des tickets",
-            description="Utilise les menus ci-dessous pour configurer le système.\n\nChoisis le salon du panel, le rôle staff et le salon des transcripts.",
-            color=discord.Color.blurple()
-        )
-        await interaction.response.send_message(embed=embed, view=SetupTicketsView(interaction.guild), ephemeral=True)
+        view = SetupTicketsView(interaction.guild)
+        await interaction.response.send_message(embed=view.embed_recap(), view=view, ephemeral=True)
+        view.message = await interaction.original_response()
 
     @setup_tickets.error
     async def setup_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
@@ -375,62 +372,73 @@ class Tickets(commands.Cog):
         await interaction.response.send_message(embed=embed)
 
 
-# ── Setup Tickets Menu ─────────────────────────────────────────
+
+# ── Setup Tickets Menu (style UltimeBots) ──────────────────────
 
 class SetupTicketsView(discord.ui.View):
+    """Panel central façon UltimeBots avec boutons ouvrant des sous-menus."""
     def __init__(self, guild: discord.Guild):
-        super().__init__(timeout=180)
+        super().__init__(timeout=300)
         self.guild = guild
         self.salon_id = None
         self.role_staff_id = None
         self.salon_transcript_id = None
         self.categorie_id = None
+        self.message = None
 
-        salon_options = [discord.SelectOption(label=f"#{c.name}", value=str(c.id)) for c in prioriser_salons(guild, "ticket")[:25]]
-        salon_select = discord.ui.Select(placeholder="📌 Salon du panel tickets", options=salon_options, custom_id="salon_panel")
-        salon_select.callback = self.select_salon
-        self.add_item(salon_select)
+    def embed_recap(self):
+        salon = self.guild.get_channel(self.salon_id) if self.salon_id else None
+        role = self.guild.get_role(self.role_staff_id) if self.role_staff_id else None
+        transcript = self.guild.get_channel(self.salon_transcript_id) if self.salon_transcript_id else None
+        categorie = self.guild.get_channel(self.categorie_id) if self.categorie_id else None
 
-        role_options = [discord.SelectOption(label=r.name, value=str(r.id)) for r in guild.roles[1:][:25]]
-        role_select = discord.ui.Select(placeholder="👮 Rôle staff", options=role_options, custom_id="role_staff")
-        role_select.callback = self.select_role
-        self.add_item(role_select)
+        embed = discord.Embed(title="🔧 Système de tickets", color=discord.Color.blurple())
+        embed.add_field(name="📌 Salon du panel", value=salon.mention if salon else "❌ Non configuré", inline=False)
+        embed.add_field(name="👮 Rôle staff", value=role.mention if role else "❌ Non configuré", inline=False)
+        embed.add_field(name="📋 Salon transcripts", value=transcript.mention if transcript else "❌ Non configuré", inline=False)
+        embed.add_field(name="📁 Catégorie", value=categorie.name if categorie else "Aucune (optionnel)", inline=False)
+        embed.set_footer(text="Configure chaque option puis clique sur Déployer le panel.")
+        return embed
 
-        transcript_options = [discord.SelectOption(label=f"#{c.name}", value=str(c.id)) for c in prioriser_salons(guild, "transcript")[:25]]
-        transcript_select = discord.ui.Select(placeholder="📋 Salon des transcripts", options=transcript_options, custom_id="salon_transcript")
-        transcript_select.callback = self.select_transcript
-        self.add_item(transcript_select)
+    async def refresh(self, interaction: discord.Interaction):
+        try:
+            await self.message.edit(embed=self.embed_recap(), view=self)
+        except:
+            pass
 
-        categorie_options = [discord.SelectOption(label="Aucune catégorie", value="0")]
-        categorie_options += [discord.SelectOption(label=c.name, value=str(c.id)) for c in guild.categories[:24]]
-        categorie_select = discord.ui.Select(placeholder="📁 Catégorie des tickets (optionnel)", options=categorie_options, custom_id="categorie_tickets")
-        categorie_select.callback = self.select_categorie
-        self.add_item(categorie_select)
+    @discord.ui.button(label="Salon du panel", emoji="📌", style=discord.ButtonStyle.secondary, row=0)
+    async def btn_salon(self, interaction: discord.Interaction, button: discord.ui.Button):
+        options = [discord.SelectOption(label=f"#{c.name}", value=str(c.id)) for c in prioriser_salons(self.guild, "ticket")[:25]]
+        await interaction.response.send_message("📌 Choisis le salon où envoyer le panel :", view=SousMenuSelect(self, "salon_id", options), ephemeral=True)
 
-        btn = discord.ui.Button(label="✅ Confirmer", style=discord.ButtonStyle.success, row=4)
-        btn.callback = self.confirmer
-        self.add_item(btn)
+    @discord.ui.button(label="Rôle staff", emoji="👮", style=discord.ButtonStyle.secondary, row=0)
+    async def btn_role(self, interaction: discord.Interaction, button: discord.ui.Button):
+        options = [discord.SelectOption(label=r.name, value=str(r.id)) for r in self.guild.roles[1:][:25]]
+        await interaction.response.send_message("👮 Choisis le rôle staff :", view=SousMenuSelect(self, "role_staff_id", options), ephemeral=True)
 
-    async def select_salon(self, interaction: discord.Interaction):
-        self.salon_id = int(self.children[0].values[0])
-        await interaction.response.defer()
+    @discord.ui.button(label="Transcripts", emoji="📋", style=discord.ButtonStyle.secondary, row=0)
+    async def btn_transcript(self, interaction: discord.Interaction, button: discord.ui.Button):
+        options = [discord.SelectOption(label=f"#{c.name}", value=str(c.id)) for c in prioriser_salons(self.guild, "transcript")[:25]]
+        await interaction.response.send_message("📋 Choisis le salon des transcripts :", view=SousMenuSelect(self, "salon_transcript_id", options), ephemeral=True)
 
-    async def select_role(self, interaction: discord.Interaction):
-        self.role_staff_id = int(self.children[1].values[0])
-        await interaction.response.defer()
+    @discord.ui.button(label="Catégorie", emoji="📁", style=discord.ButtonStyle.secondary, row=1)
+    async def btn_categorie(self, interaction: discord.Interaction, button: discord.ui.Button):
+        options = [discord.SelectOption(label="Aucune catégorie", value="0")]
+        options += [discord.SelectOption(label=c.name, value=str(c.id)) for c in self.guild.categories[:24]]
+        await interaction.response.send_message("📁 Choisis la catégorie où créer les tickets :", view=SousMenuSelect(self, "categorie_id", options), ephemeral=True)
 
-    async def select_transcript(self, interaction: discord.Interaction):
-        self.salon_transcript_id = int(self.children[2].values[0])
-        await interaction.response.defer()
+    @discord.ui.button(label="Réinitialiser", emoji="🔄", style=discord.ButtonStyle.danger, row=1)
+    async def btn_reset(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.salon_id = None
+        self.role_staff_id = None
+        self.salon_transcript_id = None
+        self.categorie_id = None
+        await interaction.response.edit_message(embed=self.embed_recap(), view=self)
 
-    async def select_categorie(self, interaction: discord.Interaction):
-        val = self.children[3].values[0]
-        self.categorie_id = int(val) if val != "0" else None
-        await interaction.response.defer()
-
-    async def confirmer(self, interaction: discord.Interaction):
+    @discord.ui.button(label="Déployer le panel", emoji="🚀", style=discord.ButtonStyle.success, row=2)
+    async def btn_deployer(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self.salon_id or not self.role_staff_id or not self.salon_transcript_id:
-            return await interaction.response.send_message("❌ Tu dois remplir tous les menus avant de confirmer.", ephemeral=True)
+            return await interaction.response.send_message("❌ Tu dois configurer le salon, le rôle staff et les transcripts avant de déployer.", ephemeral=True)
 
         settings = load_settings()
         guild_id = str(interaction.guild.id)
@@ -443,9 +451,6 @@ class SetupTicketsView(discord.ui.View):
         save_settings(settings)
 
         salon = interaction.guild.get_channel(self.salon_id)
-        role = interaction.guild.get_role(self.role_staff_id)
-        transcript = interaction.guild.get_channel(self.salon_transcript_id)
-
         embed_panel = discord.Embed(
             title="🎫 Centre de support",
             description=(
@@ -459,18 +464,27 @@ class SetupTicketsView(discord.ui.View):
         await salon.send(embed=embed_panel, view=PanelOuvrirTicket())
 
         await interaction.response.edit_message(
-            embed=discord.Embed(
-                title="✅ Tickets configurés !",
-                description=(
-                    f"**Panel :** {salon.mention}\n"
-                    f"**Staff :** {role.mention}\n"
-                    f"**Transcripts :** {transcript.mention}\n"
-                    f"**Catégorie :** {interaction.guild.get_channel(self.categorie_id).name if self.categorie_id else 'Aucune'}"
-                ),
-                color=discord.Color.green()
-            ),
+            embed=discord.Embed(title="✅ Panel déployé !", description=f"Le panel a été envoyé dans {salon.mention}.", color=discord.Color.green()),
             view=None
         )
+
+
+class SousMenuSelect(discord.ui.View):
+    """Sous-menu temporaire pour choisir une valeur, met à jour le panel principal au retour."""
+    def __init__(self, parent_view: SetupTicketsView, attribut: str, options: list):
+        super().__init__(timeout=60)
+        self.parent_view = parent_view
+        self.attribut = attribut
+
+        select = discord.ui.Select(placeholder="Choisis une option...", options=options)
+        select.callback = self.callback
+        self.add_item(select)
+
+    async def callback(self, interaction: discord.Interaction):
+        valeur = self.children[0].values[0]
+        setattr(self.parent_view, self.attribut, int(valeur) if valeur != "0" else None)
+        await self.parent_view.refresh(interaction)
+        await interaction.response.edit_message(content="✅ Choix enregistré ! Tu peux fermer ce message.", view=None)
 
 
 async def setup(bot):
