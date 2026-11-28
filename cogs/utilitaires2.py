@@ -3,8 +3,92 @@ from discord import app_commands
 from discord.ext import commands
 import asyncio
 import datetime
+import ast
 import math
- 
+import operator
+
+
+# --- Évaluateur mathématique sécurisé (remplace eval) -----------------------
+# Seuls les nombres, les opérateurs arithmétiques et une liste blanche de
+# fonctions/constantes de `math` sont autorisés. Aucun accès aux attributs,
+# aux noms arbitraires, aux appels de méthodes ou aux compréhensions.
+
+_BIN_OPS = {
+    ast.Add: operator.add,
+    ast.Sub: operator.sub,
+    ast.Mult: operator.mul,
+    ast.Div: operator.truediv,
+    ast.FloorDiv: operator.floordiv,
+    ast.Mod: operator.mod,
+    ast.Pow: operator.pow,
+}
+_UNARY_OPS = {ast.UAdd: operator.pos, ast.USub: operator.neg}
+
+_FUNCS = {
+    name: getattr(math, name)
+    for name in (
+        "sqrt", "sin", "cos", "tan", "asin", "acos", "atan",
+        "log", "log10", "log2", "exp", "floor", "ceil", "fabs",
+        "radians", "degrees",
+    )
+}
+_FUNCS.update({"abs": abs, "round": round})
+_CONSTS = {"pi": math.pi, "e": math.e, "tau": math.tau}
+
+_MAX_EXPR_LEN = 200
+_MAX_NUMBER = 10 ** 100
+_MAX_EXPONENT = 1000
+
+
+def _check(value):
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError("Résultat non numérique")
+    if abs(value) > _MAX_NUMBER:
+        raise ValueError("Nombre trop grand")
+    return value
+
+
+def _eval_node(node):
+    if isinstance(node, ast.Expression):
+        return _eval_node(node.body)
+    if isinstance(node, ast.Constant) and type(node.value) in (int, float):
+        return _check(node.value)
+    if isinstance(node, ast.BinOp) and type(node.op) in _BIN_OPS:
+        left, right = _eval_node(node.left), _eval_node(node.right)
+        if isinstance(node.op, ast.Pow) and abs(right) > _MAX_EXPONENT:
+            raise ValueError("Exposant trop grand")
+        return _check(_BIN_OPS[type(node.op)](left, right))
+    if isinstance(node, ast.UnaryOp) and type(node.op) in _UNARY_OPS:
+        return _check(_UNARY_OPS[type(node.op)](_eval_node(node.operand)))
+    if isinstance(node, ast.Name) and node.id in _CONSTS:
+        return _CONSTS[node.id]
+    # Accepte aussi la forme "math.sqrt(...)" / "math.pi" par compatibilité
+    if (isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name)
+            and node.value.id == "math" and node.attr in _CONSTS):
+        return _CONSTS[node.attr]
+    if isinstance(node, ast.Call) and not node.keywords:
+        func = node.func
+        if isinstance(func, ast.Name):
+            name = func.id
+        elif (isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name)
+              and func.value.id == "math"):
+            name = func.attr
+        else:
+            raise ValueError("Fonction non autorisée")
+        if name not in _FUNCS:
+            raise ValueError("Fonction non autorisée")
+        args = [_eval_node(a) for a in node.args]
+        return _check(_FUNCS[name](*args))
+    raise ValueError("Expression non autorisée")
+
+
+def safe_calc(expression: str):
+    if len(expression) > _MAX_EXPR_LEN:
+        raise ValueError("Expression trop longue")
+    tree = ast.parse(expression.replace("^", "**"), mode="eval")
+    return _eval_node(tree)
+
+
 class Utilitaires2(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -47,11 +131,14 @@ class Utilitaires2(commands.Cog):
     @app_commands.describe(calcul="Le calcul à effectuer (ex: 23*45)")
     async def calc(self, interaction: discord.Interaction, calcul: str):
         try:
-            calcul_safe = calcul.replace("^", "**")
-            resultat = eval(calcul_safe, {"__builtins__": {}}, {"math": math})
-            await interaction.response.send_message(f"🧮 `{calcul}` = **{resultat}**")
-        except:
-            await interaction.response.send_message("❌ Calcul invalide.", ephemeral=True)
+            resultat = safe_calc(calcul)
+        except (ValueError, SyntaxError, TypeError, ZeroDivisionError, OverflowError, RecursionError, MemoryError):
+            return await interaction.response.send_message("❌ Calcul invalide.", ephemeral=True)
+        calcul_affiche = discord.utils.escape_markdown(calcul).replace("`", "")
+        await interaction.response.send_message(
+            f"🧮 `{calcul_affiche}` = **{resultat}**",
+            allowed_mentions=discord.AllowedMentions.none(),
+        )
  
     @app_commands.command(name="slowmode", description="Active le mode lent sur le salon")
     @app_commands.describe(secondes="Délai en secondes (0 pour désactiver)")
